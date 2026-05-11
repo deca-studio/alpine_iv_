@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, createContext, useContext } from "react";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -105,7 +105,8 @@ const fmt  = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BR
 const fmtK = (v) => `R$${(v / 1000).toFixed(1)}k`;
 
 // ─── Design System ──────────────────────────────────────────────────────────
-const C = {
+
+const LIGHT = {
   bg:          "#f3f5f9",
   bgStrong:    "#e8edf7",
   surface:     "rgba(255,255,255,0.88)",
@@ -140,12 +141,57 @@ const C = {
   indigo:      "#4338ca",
 };
 
-const PIE_DESP = [C.info, C.amber, C.violet, C.danger, C.teal, C.indigo, C.rose];
-const PIE_REC  = [C.success, C.info, C.amber, C.violet, C.rose, C.teal];
+const DARK = {
+  bg:          "#0A0F1A",
+  bgStrong:    "#131B2F",
+  surface:     "rgba(15,23,42,0.88)",
+  surfaceSolid:"#0f172a",
+  text:        "#f8fafc",
+  textSoft:    "#cbd5e1",
+  textMuted:   "#94a3b8",
+  textDim:     "#64748b",
+  line:        "rgba(255,255,255,0.12)",
+  lineStrong:  "rgba(255,255,255,0.24)",
+  shadowSm:    "0 1px 2px rgba(0,0,0,.4), 0 4px 10px rgba(0,0,0,.4)",
+  shadowMd:    "0 12px 28px rgba(0,0,0,.5)",
+  shadowLg:    "0 28px 70px rgba(0,0,0,.6)",
+  primary:     "#93c5fd",
+  primarySoft: "rgba(147,197,253,.15)",
+  primaryGlow: "rgba(147,197,253,.3)",
+  gold:        "#fcd34d",
+  goldSoft:    "rgba(252,211,77,.15)",
+  goldBorder:  "rgba(252,211,77,.3)",
+  success:     "#4ade80",
+  successSoft: "rgba(74,222,128,.15)",
+  danger:      "#f87171",
+  dangerSoft:  "rgba(248,113,113,.15)",
+  info:        "#60a5fa",
+  infoSoft:    "rgba(96,165,250,.15)",
+  violet:      "#a78bfa",
+  violetSoft:  "rgba(167,139,250,.15)",
+  amber:       "#fbbf24",
+  amberSoft:   "rgba(251,191,36,.15)",
+  teal:        "#2dd4bf",
+  rose:        "#fb7185",
+  indigo:      "#818cf8",
+};
 
-const GRID     = { stroke: "rgba(148,163,184,.22)", strokeDasharray: "3 3" };
-const AXIS     = { fill: C.textMuted, fontSize: 10, fontFamily: "'Montserrat'", fontWeight: 600 };
-const AXIS_LINE= { stroke: "rgba(148,163,184,.3)" };
+const ThemeContext = createContext({ C: LIGHT, isDark: false, setIsDark: () => {} });
+const useTheme = () => useContext(ThemeContext);
+
+const getChartTheme = (C) => ({
+  PIE_DESP: [C.info, C.amber, C.violet, C.danger, C.teal, C.indigo, C.rose],
+  PIE_REC: [C.success, C.info, C.amber, C.violet, C.rose, C.teal],
+  GRID: { stroke: C.lineStrong, strokeDasharray: "3 3" },
+  AXIS: { fill: C.textMuted, fontSize: 10, fontFamily: "'Montserrat'", fontWeight: 600 },
+  AXIS_LINE: { stroke: C.lineStrong },
+  CHART_TOOLTIP: {
+    contentStyle: { background: C.surfaceSolid, border: `1px solid ${C.line}`, borderRadius: 10, fontFamily: "'Montserrat'", fontSize: 12, color: C.text },
+    itemStyle: { color: C.textSoft },
+  },
+  LEGEND_STYLE: { fontSize: 10, fontFamily: "'Montserrat'", fontWeight: 600, color: C.textMuted }
+});
+
 
 // ─── SVG Icon System ────────────────────────────────────────────────────────
 const ICONS = {
@@ -184,6 +230,7 @@ const WarnSm = ({ color }) => (
 
 // ─── Components ─────────────────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
+  const { C } = useTheme();
   if (!active || !payload) return null;
   return (
     <div style={{
@@ -203,7 +250,10 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-const KPI = ({ label, value, sub, color = C.primary, alert, compact }) => (
+const KPI = ({ label, value, sub, color, alert, compact }) => {
+  const { C } = useTheme();
+  color = color || C.primary;
+  return (
   <div style={{
     background: alert
       ? `linear-gradient(135deg, rgba(255,255,255,.95) 55%, ${color}09 100%)`
@@ -250,9 +300,13 @@ const KPI = ({ label, value, sub, color = C.primary, alert, compact }) => (
       overflowWrap: "anywhere",
     }}>{sub}</p>}
   </div>
-);
+  );
+};
 
-const Badge = ({ children, color = C.gold }) => (
+const Badge = ({ children, color }) => {
+  const { C } = useTheme();
+  color = color || C.gold;
+  return (
   <span style={{
     background: color + "18",
     color, border: `1px solid ${color}44`,
@@ -260,16 +314,22 @@ const Badge = ({ children, color = C.gold }) => (
     fontWeight: 800, fontFamily: "'Montserrat'", letterSpacing: "0.8px",
     textTransform: "uppercase", display: "inline-block",
   }}>{children}</span>
-);
+  );
+};
 
-const SectionTitle = ({ children, badge }) => (
+const SectionTitle = ({ children, badge }) => {
+  const { C } = useTheme();
+  return (
   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
     <h2 style={{ color: C.primary, fontFamily: "'Bebas Neue'", fontSize: 17, margin: 0, letterSpacing: "2px" }}>{children}</h2>
     {badge}
   </div>
-);
+  );
+};
 
-const Card = ({ children, style }) => (
+const Card = ({ children, style }) => {
+  const { C } = useTheme();
+  return (
   <div style={{
     background: C.surface,
     backdropFilter: "blur(18px)",
@@ -278,9 +338,12 @@ const Card = ({ children, style }) => (
     boxShadow: C.shadowMd,
     ...style,
   }}>{children}</div>
-);
+  );
+};
 
-const TabButton = ({ active, onClick, children }) => (
+const TabButton = ({ active, onClick, children }) => {
+  const { C } = useTheme();
+  return (
   <button onClick={onClick} style={{
     background: active ? C.primary : C.surface,
     color: active ? "#fff" : C.textSoft,
@@ -291,9 +354,13 @@ const TabButton = ({ active, onClick, children }) => (
     letterSpacing: "0.6px", textTransform: "uppercase", transition: "all .2s",
     whiteSpace: "nowrap",
   }}>{children}</button>
-);
+  );
+};
 
-const Insight = ({ icon, text, color = C.gold }) => (
+const Insight = ({ icon, text, color }) => {
+  const { C } = useTheme();
+  color = color || C.gold;
+  return (
   <div style={{
     display: "flex", alignItems: "flex-start", gap: 12,
     background: color === C.danger ? C.dangerSoft : color === C.success ? C.successSoft : color === C.info ? C.infoSoft : color === C.amber ? C.amberSoft : C.goldSoft,
@@ -305,17 +372,43 @@ const Insight = ({ icon, text, color = C.gold }) => (
     </div>
     <p style={{ color: C.textSoft, fontSize: 12, margin: 0, fontFamily: "'Montserrat'", lineHeight: 1.65, fontWeight: 500 }}>{text}</p>
   </div>
-);
-
-const CHART_TOOLTIP = {
-  contentStyle: { background: "#fff", border: `1px solid ${C.line}`, borderRadius: 10, fontFamily: "'Montserrat'", fontSize: 12, color: C.text },
-  itemStyle: { color: C.textSoft },
+  );
 };
 
-const LEGEND_STYLE = { fontSize: 10, fontFamily: "'Montserrat'", fontWeight: 600, color: C.textMuted };
+
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const [isDark, setIsDark] = useState(true);
+  const C = isDark ? DARK : LIGHT;
+  const chartTheme = useMemo(() => getChartTheme(C), [C]);
+  const { PIE_DESP, PIE_REC, GRID, AXIS, AXIS_LINE, CHART_TOOLTIP, LEGEND_STYLE } = chartTheme;
+
+  useEffect(() => {
+    document.body.style.background = C.bg;
+  }, [C.bg]);
+
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.log(`Error attempting to enable fullscreen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   const [tab, setTab] = useState("visaoGeral");
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== "undefined" ? window.innerWidth : 1440);
   const isMobile = viewportWidth < 768;
@@ -358,7 +451,8 @@ export default function Dashboard() {
   const pad = r("32px 48px 56px", "16px 14px 48px");
 
   return (
-    <div style={{ fontFamily: "'Montserrat', system-ui, sans-serif", background: C.bg, color: C.text, minHeight: "100vh", width: "100%" }}>
+    <ThemeContext.Provider value={{ C, isDark, setIsDark }}>
+      <div style={{ fontFamily: "'Montserrat', system-ui, sans-serif", background: C.bg, color: C.text, minHeight: "100vh", width: "100%" }}>
       <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
       {/* ── HEADER ─────────────────────────────────────────────────────────── */}
@@ -376,10 +470,20 @@ export default function Dashboard() {
               <span style={{ color: C.gold, fontWeight: 700 }}>Jan/2025 a Fev/2026</span>
             </p>
           </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <p style={{ color: "rgba(201,162,74,.7)", fontSize: 9, margin: 0, letterSpacing: "2px", textTransform: "uppercase", fontWeight: 800, fontFamily: "'Montserrat'" }}>Emitido</p>
-            <p style={{ color: "#fff", fontSize: r(24, 18), fontFamily: "'Bebas Neue'", margin: "3px 0 2px", letterSpacing: "1.5px" }}>11/05/2026</p>
-            <p style={{ color: "rgba(255,255,255,.45)", fontSize: 9, margin: 0, fontWeight: 600, letterSpacing: "0.8px", fontFamily: "'Montserrat'" }}>W015A · Código 107</p>
+          <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setIsDark(!isDark)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 20, padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: 10, fontFamily: "'Montserrat'", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, transition: "all 0.2s" }}>
+                {isDark ? "Light Mode" : "Dark Mode"}
+              </button>
+              <button onClick={toggleFullscreen} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 20, padding: "6px 12px", color: "#fff", cursor: "pointer", fontSize: 10, fontFamily: "'Montserrat'", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, transition: "all 0.2s" }}>
+                {isFullscreen ? "Sair Tela Cheia" : "Tela Cheia"}
+              </button>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ color: "rgba(201,162,74,.7)", fontSize: 9, margin: 0, letterSpacing: "2px", textTransform: "uppercase", fontWeight: 800, fontFamily: "'Montserrat'" }}>Emitido</p>
+              <p style={{ color: "#fff", fontSize: r(24, 18), fontFamily: "'Bebas Neue'", margin: "3px 0 2px", letterSpacing: "1.5px" }}>11/05/2026</p>
+              <p style={{ color: "rgba(255,255,255,.45)", fontSize: 9, margin: 0, fontWeight: 600, letterSpacing: "0.8px", fontFamily: "'Montserrat'" }}>W015A · Código 107</p>
+            </div>
           </div>
         </div>
       </header>
@@ -937,5 +1041,6 @@ export default function Dashboard() {
         </footer>
       </main>
     </div>
+    </ThemeContext.Provider>
   );
 }
